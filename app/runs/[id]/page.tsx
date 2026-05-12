@@ -94,6 +94,7 @@ export default function RunPage({ params }: PageProps) {
   const [openConcept, setOpenConcept] = useState<Doc<"concepts"> | null>(null);
   const [showAd, setShowAd] = useState(false);
   const [showPass, setShowPass] = useState<number | null>(null);
+  const [view, setView] = useState<"images" | "prompts">("images");
 
   if (run === undefined || concepts === undefined || images === undefined) {
     return (
@@ -176,46 +177,131 @@ export default function RunPage({ params }: PageProps) {
       </section>
 
       <section>
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">
-          Concepts & images ({concepts.length})
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-          {concepts.map((concept) => {
-            const conceptImages = imagesByConcept.get(concept._id) ?? [];
-            const primaryImage = conceptImages[0];
-            return (
-              <button
-                key={concept._id}
-                onClick={() => primaryImage && setOpenConcept(concept)}
-                disabled={!primaryImage}
-                className="block bg-white rounded-lg border border-gray-200 overflow-hidden hover:border-gray-400 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <div className="aspect-[9/16] bg-gray-100 relative">
-                  {primaryImage ? (
-                    <img
-                      src={primaryImage.url}
-                      alt={concept.cNumber}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-xs text-gray-400">
-                      no image
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-gray-900">
+            Concepts ({concepts.length})
+          </h3>
+          <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+            <button
+              onClick={() => setView("images")}
+              className={`px-3 py-1 text-xs font-medium rounded ${
+                view === "images" ? "bg-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Images
+            </button>
+            <button
+              onClick={() => setView("prompts")}
+              className={`px-3 py-1 text-xs font-medium rounded ${
+                view === "prompts" ? "bg-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Prompts
+            </button>
+          </div>
+        </div>
+
+        {view === "images" ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {concepts.map((concept) => {
+              const conceptImages = imagesByConcept.get(concept._id) ?? [];
+              const primaryImage = conceptImages[0];
+              return (
+                <button
+                  key={concept._id}
+                  onClick={() => primaryImage && setOpenConcept(concept)}
+                  disabled={!primaryImage}
+                  className="block bg-white rounded-lg border border-gray-200 overflow-hidden hover:border-gray-400 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="aspect-[9/16] bg-gray-100 relative">
+                    {primaryImage ? (
+                      <img
+                        src={primaryImage.url}
+                        alt={concept.cNumber}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-xs text-gray-400">
+                        no image
+                      </div>
+                    )}
+                    <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-black/70 text-white text-xs rounded">
+                      {concept.cNumber}
                     </div>
-                  )}
-                  <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-black/70 text-white text-xs rounded">
-                    {concept.cNumber}
+                  </div>
+                  <div className="p-2">
+                    <p className="text-xs text-gray-600 line-clamp-2">
+                      {concept.text.replace(/^C\d+[:\s\*\-—]*/, "").slice(0, 80)}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {concepts.map((concept) => {
+              const conceptImages = imagesByConcept.get(concept._id) ?? [];
+              const primaryImage = conceptImages[0];
+              return (
+                <div
+                  key={concept._id}
+                  className="bg-white rounded-xl border border-gray-200 p-4"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-[80px_1fr] gap-4">
+                    {primaryImage ? (
+                      <button
+                        onClick={() => setOpenConcept(concept)}
+                        className="block aspect-[9/16] bg-gray-100 rounded-md overflow-hidden hover:opacity-80"
+                      >
+                        <img
+                          src={primaryImage.url}
+                          alt={concept.cNumber}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </button>
+                    ) : (
+                      <div className="aspect-[9/16] bg-gray-100 rounded-md flex items-center justify-center text-xs text-gray-400">
+                        no image
+                      </div>
+                    )}
+                    <div className="space-y-2 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 bg-gray-900 text-white text-xs font-mono rounded">
+                          {concept.cNumber}
+                        </span>
+                        <span className="text-xs text-gray-500">pass {concept.pass}</span>
+                        {concept.reptileTriggers && (
+                          <span className="text-xs text-gray-500 truncate">
+                            · {concept.reptileTriggers}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-700 mb-1">Bot concept</p>
+                        <pre className="text-xs text-gray-700 whitespace-pre-wrap font-sans">
+                          {concept.text.replace(/^[\*#\-_>\s]*C\d+[\s\*:.—\-\)]*/, "")}
+                        </pre>
+                      </div>
+                      {concept.renderPrompt && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-700 mb-1">
+                            Sonnet render prompt (sent to gpt-image-2)
+                          </p>
+                          <pre className="text-xs text-gray-600 whitespace-pre-wrap font-sans bg-gray-50 p-2 rounded">
+                            {concept.renderPrompt}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="p-2">
-                  <p className="text-xs text-gray-600 line-clamp-2">
-                    {concept.text.replace(/^C\d+[:\s\*\-—]*/, "").slice(0, 80)}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {openConcept && (() => {

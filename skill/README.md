@@ -21,15 +21,13 @@ rm -rf /tmp/nae-clone
 
 (Or just download the `skill/` folder from the repo and drop it at `~/.claude/skills/native-ads-engine/`.)
 
-### 2. Get your API keys
-
-You need three:
+### 2. Get your own API keys (all three — no shared keys)
 
 | Key | Where | Cost |
 |---|---|---|
-| **kie.ai** | https://kie.ai → sign up → API Keys | ~$0.04/image. $20 buys ~50 runs. |
-| **OpenRouter** | https://openrouter.ai → Keys | ~$0.10/run for Sonnet synth |
-| **Genesis API** | Ask Max for the shared key (or get your own from Luke) | Free with key |
+| **kie.ai** | https://kie.ai → sign up → API Keys | ~$0.04/image, ~$0.40/run. $20 buys ~50 runs. |
+| **OpenRouter** | https://openrouter.ai → Keys | ~$0.05/run for Sonnet synth |
+| **Genesis API** | Genesis admin panel — generate your own bearer token | Free with key |
 
 ### 3. Configure the env file
 

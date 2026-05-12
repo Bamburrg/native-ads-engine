@@ -62,17 +62,17 @@ Share the dashboard URL right after firing (don't wait). Then optionally watch f
 
 ## Setup (one-time, before first run)
 
-The skill needs three API keys in a `.env` file inside the skill directory:
+The skill needs three API keys (each user brings their own — no shared keys) in a `.env` file inside the skill directory:
 
 ```bash
 cat > ~/.claude/skills/native-ads-engine/.env <<'EOF'
-KIE_API_KEY=<your kie.ai API key — get from https://kie.ai>
-OPENROUTER_API_KEY=<your OpenRouter key — get from https://openrouter.ai>
-GENESIS_API_KEY=<your Genesis API key — Luke's key works for Genesis users>
+KIE_API_KEY=<your own kie.ai API key — sign up at https://kie.ai>
+OPENROUTER_API_KEY=<your own OpenRouter key — sign up at https://openrouter.ai>
+GENESIS_API_KEY=<your own Genesis bearer token — generate from Genesis admin panel>
 EOF
 ```
 
-The Convex URL is hardcoded to a shared dashboard. All runs from any user land in the same dashboard at https://native-ads-engine.vercel.app.
+The Convex URL defaults to the shared Native Ads Engine dashboard. All runs from any user land at https://native-ads-engine.vercel.app — to use your own private dashboard, deploy your own Convex instance and set `NEXT_PUBLIC_CONVEX_URL` in `.env`.
 
 ## What changes in the dashboard
 

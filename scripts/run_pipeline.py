@@ -354,7 +354,7 @@ def main():
     args = p.parse_args()
 
     ad_text = Path(args.ad_file).read_text()
-    print(f"\n=== {args.name} ===\n  3-pass mandatory | ad: {args.ad_file} ({len(ad_text)} chars)\n")
+    print(f"\n=== {args.name} ===\n  3 passes (only pass 3 stored/rendered) | ad: {args.ad_file} ({len(ad_text)} chars)\n")
 
     # 1. Create run
     run_id = convex_call("runs:createRun", {"name": args.name, "adText": ad_text})
@@ -365,44 +365,44 @@ def main():
     counters = {"concepts": 0, "fired": 0, "completed": 0}
     convo = [{"role": "system", "content": SYS}]
 
-    # Use one pool for the whole pipeline so concepts get rendered as soon as their pass completes.
+    # Run all 3 passes for the conversational priming (Pass 3 only goes wild AFTER seeing 1+2).
+    # But we ONLY parse + store + render concepts from Pass 3 — the "most bizarre/weird" ones.
+
+    # PASS 1 — priming, output discarded
+    print("→ Pass 1 firing (priming, output discarded)…", flush=True)
+    t0 = time.time()
+    convo.append({"role": "user", "content": pass1_msg(ad_text)})
+    out = genesis_chat(convo)
+    convo.append({"role": "assistant", "content": out})
+    convex_call("runs:updateRun", {"runId": run_id, "passesCompleted": 1})
+    print(f"  ← Pass 1 in {time.time()-t0:.1f}s", flush=True)
+
+    # PASS 2 — priming, output discarded
+    print("→ Pass 2 firing (priming, output discarded)…", flush=True)
+    t0 = time.time()
+    convo.append({"role": "user", "content": PASS2_MSG})
+    out = genesis_chat(convo)
+    convo.append({"role": "assistant", "content": out})
+    convex_call("runs:updateRun", {"runId": run_id, "passesCompleted": 2})
+    print(f"  ← Pass 2 in {time.time()-t0:.1f}s", flush=True)
+
+    # PASS 3 — the only one we actually store + render
+    print("→ Pass 3 firing (the wild one — store + render this)…", flush=True)
+    t0 = time.time()
+    convo.append({"role": "user", "content": PASS3_MSG})
+    pass3_text = genesis_chat(convo)
+    convo.append({"role": "assistant", "content": pass3_text})
+    convex_call("runs:updateRun", {"runId": run_id, "pass3Raw": pass3_text, "passesCompleted": 3})
+    print(f"  ← Pass 3 in {time.time()-t0:.1f}s", flush=True)
+
+    pass3_concepts = parse_concepts(pass3_text, start_n=31)
+    print(f"\nfiring {len(pass3_concepts)} concept tasks (synth + render in parallel)…\n", flush=True)
+
     with ThreadPoolExecutor(max_workers=MAX_RENDER_PARALLEL) as pool:
-        futures = []
-
-        # PASS 1
-        print("→ Pass 1 firing…", flush=True)
-        t0 = time.time()
-        convo.append({"role": "user", "content": pass1_msg(ad_text)})
-        out = genesis_chat(convo)
-        convo.append({"role": "assistant", "content": out})
-        convex_call("runs:updateRun", {"runId": run_id, "pass1Raw": out, "passesCompleted": 1})
-        print(f"  ← Pass 1 in {time.time()-t0:.1f}s", flush=True)
-        for c in parse_concepts(out, start_n=1):
-            futures.append(pool.submit(synth_and_render, c, run_id, 1, lock, counters))
-
-        # PASS 2
-        print("→ Pass 2 firing…", flush=True)
-        t0 = time.time()
-        convo.append({"role": "user", "content": PASS2_MSG})
-        out = genesis_chat(convo)
-        convo.append({"role": "assistant", "content": out})
-        convex_call("runs:updateRun", {"runId": run_id, "pass2Raw": out, "passesCompleted": 2})
-        print(f"  ← Pass 2 in {time.time()-t0:.1f}s", flush=True)
-        for c in parse_concepts(out, start_n=21):
-            futures.append(pool.submit(synth_and_render, c, run_id, 2, lock, counters))
-
-        # PASS 3
-        print("→ Pass 3 firing…", flush=True)
-        t0 = time.time()
-        convo.append({"role": "user", "content": PASS3_MSG})
-        out = genesis_chat(convo)
-        convo.append({"role": "assistant", "content": out})
-        convex_call("runs:updateRun", {"runId": run_id, "pass3Raw": out, "passesCompleted": 3})
-        print(f"  ← Pass 3 in {time.time()-t0:.1f}s", flush=True)
-        for c in parse_concepts(out, start_n=31):
-            futures.append(pool.submit(synth_and_render, c, run_id, 3, lock, counters))
-
-        print(f"\nwaiting on {len(futures)} concept tasks…\n", flush=True)
+        futures = [
+            pool.submit(synth_and_render, c, run_id, 3, lock, counters)
+            for c in pass3_concepts
+        ]
         for fut in as_completed(futures):
             pass  # progress logged inside each task
 

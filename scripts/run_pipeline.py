@@ -351,11 +351,10 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("name", help="Run name (e.g. 'Hox snoring v2')")
     p.add_argument("ad_file", help="Path to ad text file")
-    p.add_argument("--passes", type=int, default=2, choices=[1, 2, 3], help="Number of bot passes (default: 2)")
     args = p.parse_args()
 
     ad_text = Path(args.ad_file).read_text()
-    print(f"\n=== {args.name} ===\n  passes: {args.passes} | ad: {args.ad_file} ({len(ad_text)} chars)\n")
+    print(f"\n=== {args.name} ===\n  3-pass mandatory | ad: {args.ad_file} ({len(ad_text)} chars)\n")
 
     # 1. Create run
     run_id = convex_call("runs:createRun", {"name": args.name, "adText": ad_text})
@@ -382,28 +381,26 @@ def main():
             futures.append(pool.submit(synth_and_render, c, run_id, 1, lock, counters))
 
         # PASS 2
-        if args.passes >= 2:
-            print("→ Pass 2 firing…", flush=True)
-            t0 = time.time()
-            convo.append({"role": "user", "content": PASS2_MSG})
-            out = genesis_chat(convo)
-            convo.append({"role": "assistant", "content": out})
-            convex_call("runs:updateRun", {"runId": run_id, "pass2Raw": out, "passesCompleted": 2})
-            print(f"  ← Pass 2 in {time.time()-t0:.1f}s", flush=True)
-            for c in parse_concepts(out, start_n=21):
-                futures.append(pool.submit(synth_and_render, c, run_id, 2, lock, counters))
+        print("→ Pass 2 firing…", flush=True)
+        t0 = time.time()
+        convo.append({"role": "user", "content": PASS2_MSG})
+        out = genesis_chat(convo)
+        convo.append({"role": "assistant", "content": out})
+        convex_call("runs:updateRun", {"runId": run_id, "pass2Raw": out, "passesCompleted": 2})
+        print(f"  ← Pass 2 in {time.time()-t0:.1f}s", flush=True)
+        for c in parse_concepts(out, start_n=21):
+            futures.append(pool.submit(synth_and_render, c, run_id, 2, lock, counters))
 
         # PASS 3
-        if args.passes >= 3:
-            print("→ Pass 3 firing…", flush=True)
-            t0 = time.time()
-            convo.append({"role": "user", "content": PASS3_MSG})
-            out = genesis_chat(convo)
-            convo.append({"role": "assistant", "content": out})
-            convex_call("runs:updateRun", {"runId": run_id, "pass3Raw": out, "passesCompleted": 3})
-            print(f"  ← Pass 3 in {time.time()-t0:.1f}s", flush=True)
-            for c in parse_concepts(out, start_n=31):
-                futures.append(pool.submit(synth_and_render, c, run_id, 3, lock, counters))
+        print("→ Pass 3 firing…", flush=True)
+        t0 = time.time()
+        convo.append({"role": "user", "content": PASS3_MSG})
+        out = genesis_chat(convo)
+        convo.append({"role": "assistant", "content": out})
+        convex_call("runs:updateRun", {"runId": run_id, "pass3Raw": out, "passesCompleted": 3})
+        print(f"  ← Pass 3 in {time.time()-t0:.1f}s", flush=True)
+        for c in parse_concepts(out, start_n=31):
+            futures.append(pool.submit(synth_and_render, c, run_id, 3, lock, counters))
 
         print(f"\nwaiting on {len(futures)} concept tasks…\n", flush=True)
         for fut in as_completed(futures):

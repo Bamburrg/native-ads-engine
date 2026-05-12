@@ -93,7 +93,6 @@ export default function RunPage({ params }: PageProps) {
   const images = useQuery(api.images.listForRun, { runId });
   const [openConcept, setOpenConcept] = useState<Doc<"concepts"> | null>(null);
   const [showAd, setShowAd] = useState(false);
-  const [showPass, setShowPass] = useState<number | null>(null);
   const [view, setView] = useState<"images" | "prompts">("images");
 
   if (run === undefined || concepts === undefined || images === undefined) {
@@ -120,8 +119,6 @@ export default function RunPage({ params }: PageProps) {
     list.push(img);
     imagesByConcept.set(img.conceptId, list);
   }
-
-  const passes = [run.pass1Raw, run.pass2Raw, run.pass3Raw];
 
   return (
     <div>
@@ -150,31 +147,6 @@ export default function RunPage({ params }: PageProps) {
           <pre className="whitespace-pre-wrap text-sm text-gray-700">{run.adText}</pre>
         </section>
       )}
-
-      <section className="mb-6">
-        <h3 className="text-sm font-semibold text-gray-900 mb-2">Raw bot output</h3>
-        <div className="flex gap-2">
-          {[1, 2, 3].map((n) => (
-            <button
-              key={n}
-              onClick={() => setShowPass(showPass === n ? null : n)}
-              disabled={!passes[n - 1]}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg border disabled:opacity-40 ${
-                showPass === n
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-              }`}
-            >
-              Pass {n}
-            </button>
-          ))}
-        </div>
-        {showPass && passes[showPass - 1] && (
-          <pre className="mt-3 whitespace-pre-wrap text-xs text-gray-700 bg-white rounded-xl border border-gray-200 p-4 max-h-[400px] overflow-y-auto">
-            {passes[showPass - 1]}
-          </pre>
-        )}
-      </section>
 
       <section>
         <div className="flex items-center justify-between mb-3">
